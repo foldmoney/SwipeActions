@@ -439,7 +439,7 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
 
         // MARK: - Add gestures
 
-        .highPriorityGesture( /// Add the drag gesture.
+        .simultaneousGesture( /// Add the drag gesture.
             DragGesture(minimumDistance: options.swipeMinimumDistance)
                 .updating($currentlyDragging) { value, state, transaction in
                     state = true
