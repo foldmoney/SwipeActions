@@ -119,6 +119,9 @@ public struct SwipeOptions {
     /// If swiping is currently enabled.
     var swipeEnabled = true
 
+    /// Whether or not to use a simultaneous gesture on the view.
+    var useSimultaneousGesture = false
+
     /// The minimum distance needed to drag to start the gesture. Should be more than 0 for best compatibility with other gestures/buttons.
     var swipeMinimumDistance = Double(2)
 
@@ -439,16 +442,20 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
 
         // MARK: - Add gestures
 
-        .simultaneousGesture( /// Add the drag gesture.
-            DragGesture(minimumDistance: options.swipeMinimumDistance)
-                .updating($currentlyDragging) { value, state, transaction in
-                    state = true
-                }
-                .onChanged(onChanged)
-                .onEnded(onEnded)
-                .updatingVelocity($velocity),
-            including: options.swipeEnabled ? .all : .subviews /// Enable/disable swiping here.
-        )
+        .if(options.useSimultaneousGesture == true) { view in
+            view
+                .simultaneousGesture(
+                    dragGesture,
+                    including: options.swipeEnabled ? .all : .subviews /// Enable/disable swiping here.
+                )
+        }
+        .if(options.useSimultaneousGesture == false) { view in
+            view
+                .highPriorityGesture( /// Add the drag gesture.
+                    dragGesture,
+                    including: options.swipeEnabled ? .all : .subviews /// Enable/disable swiping here.
+                )
+        }
         .onChange(of: currentlyDragging) { currentlyDragging in /// Detect gesture cancellations.
             if !currentlyDragging, let latestDragGestureValueBackup {
                 /// Gesture cancelled.
@@ -514,6 +521,16 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
                 }
             }
         }
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: options.swipeMinimumDistance)
+            .updating($currentlyDragging) { value, state, transaction in
+                state = true
+            }
+            .onChanged(onChanged)
+            .onEnded(onEnded)
+            .updatingVelocity($velocity)
     }
 }
 
@@ -1121,6 +1138,12 @@ public extension SwipeView {
         return view
     }
 
+    func swipeUseSimultaneousGesture(_ value: Bool) -> SwipeView {
+        var view = self
+        view.options.useSimultaneousGesture = value
+        return view
+    }
+
     /// The minimum distance needed to drag to start the gesture. Should be more than 0 for best compatibility with other gestures/buttons.
     func swipeMinimumDistance(_ value: Double) -> SwipeView {
         var view = self
@@ -1423,4 +1446,14 @@ struct ContentSizeReaderPreferenceKey: PreferenceKey {
 struct AllowSwipeToTriggerKey: PreferenceKey {
     static var defaultValue: Bool? = nil
     static func reduce(value: inout Bool?, nextValue: () -> Bool?) { value = nextValue() }
+}
+
+extension View {
+    @ViewBuilder func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
 }
