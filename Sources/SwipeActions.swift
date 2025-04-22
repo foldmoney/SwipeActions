@@ -451,7 +451,7 @@ public struct SwipeView<Label, LeadingActions, TrailingActions>: View where Labe
         }
         .if(options.useSimultaneousGesture == false) { view in
             view
-                .highPriorityGesture( /// Add the drag gesture.
+                .gesture( /// Add the drag gesture.
                     dragGesture,
                     including: options.swipeEnabled ? .all : .subviews /// Enable/disable swiping here.
                 )
